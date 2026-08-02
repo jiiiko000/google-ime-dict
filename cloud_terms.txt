@@ -1,0 +1,93 @@
+# ===== クラウド基盤・ホスティング =====
+えーだぶりゅーえす	AWS	固有名詞
+あまぞんうぇぶさーびす	Amazon Web Services	固有名詞
+ぐーぐるくらうど	Google Cloud	固有名詞
+じーしーぴー	GCP	固有名詞
+あじゅーる	Azure	固有名詞
+まいくろそふとあじゅーる	Microsoft Azure	固有名詞
+くらうどふれあ	Cloudflare	固有名詞
+ばーせる	Vercel	固有名詞
+ねっとりふぁい	Netlify	固有名詞
+へろく	Heroku	固有名詞
+ふらいあいおー	Fly.io	固有名詞
+れんだー	Render	固有名詞
+でじたるおーしゃん	DigitalOcean	固有名詞
+さくらいんたーねっと	さくらインターネット	固有名詞
+# ===== AWSサービス =====
+いーしーつー	EC2	固有名詞
+えすすりー	S3	固有名詞
+らむだ	Lambda	固有名詞
+ふぁーげーと	Fargate	固有名詞
+いーけーえす	EKS	固有名詞
+いーしーえす	ECS	固有名詞
+あーるでぃーえす	RDS	固有名詞
+おーろら	Aurora	固有名詞
+だいなもでぃーびー	DynamoDB	固有名詞
+くらうどふろんと	CloudFront	固有名詞
+くらうどうぉっち	CloudWatch	固有名詞
+あいあむ	IAM	固有名詞
+るーとごじゅうさん	Route 53	固有名詞
+えすきゅーえす	SQS	固有名詞
+えすえぬえす	SNS	固有名詞
+きねしす	Kinesis	固有名詞
+れっどしふと	Redshift	固有名詞
+# ===== Google Cloud・データ基盤 =====
+びっぐくえり	BigQuery	固有名詞
+くらうどらん	Cloud Run	固有名詞
+じーけーいー	GKE	固有名詞
+ふぁいあべーす	Firebase	固有名詞
+ふぁいあすとあ	Firestore	固有名詞
+すーぱーべーす	Supabase	固有名詞
+すのーふれーく	Snowflake	固有名詞
+でーたぶりっくす	Databricks	固有名詞
+たぶろー	Tableau	固有名詞
+るっかー	Looker	固有名詞
+# ===== 監視・開発系SaaS =====
+でーたどっぐ	Datadog	固有名詞
+にゅーれりっく	New Relic	固有名詞
+せんとりー	Sentry	固有名詞
+ぺーじゃーでゅーてぃー	PagerDuty	固有名詞
+おぷすじーにー	Opsgenie	固有名詞
+おくた	Okta	固有名詞
+おーすぜろ	Auth0	固有名詞
+すとらいぷ	Stripe	固有名詞
+とぅいりお	Twilio	固有名詞
+せんどぐりっど	SendGrid	固有名詞
+# ===== コラボレーション・業務SaaS =====
+すらっく	Slack	固有名詞
+のーしょん	Notion	固有名詞
+ふぃぐま	Figma	固有名詞
+みろ	Miro	固有名詞
+あさな	Asana	固有名詞
+とれろ	Trello	固有名詞
+じら	Jira	固有名詞
+こんふるえんす	Confluence	固有名詞
+ばっくろぐ	Backlog	固有名詞
+きべら	Kibela	固有名詞
+えさ	esa	固有名詞
+えあてーぶる	Airtable	固有名詞
+せーるすふぉーす	Salesforce	固有名詞
+はぶすぽっと	HubSpot	固有名詞
+ぜんですく	Zendesk	固有名詞
+ずーむ	Zoom	固有名詞
+まいくろそふとちーむず	Microsoft Teams	固有名詞
+ぐーぐるわーくすぺーす	Google Workspace	固有名詞
+まいくろそふとさんろくご	Microsoft 365	固有名詞
+どろっぷぼっくす	Dropbox	固有名詞
+ぼっくす	Box	固有名詞
+わんぱすわーど	1Password	固有名詞
+らすとぱす	LastPass	固有名詞
+# ===== クラウド一般用語 =====
+くらうどねいてぃぶ	クラウドネイティブ	名詞
+まるちくらうど	マルチクラウド	名詞
+はいぶりっどくらうど	ハイブリッドクラウド	名詞
+さーばーれす	サーバーレス	名詞
+いあーす	IaaS	名詞
+ぱーす	PaaS	名詞
+さーす	SaaS	名詞
+えっじこんぴゅーてぃんぐ	エッジコンピューティング	名詞
+しーでぃーえぬ	CDN	名詞
+おぶじぇくとすとれーじ	オブジェクトストレージ	名詞
+りーじょん	リージョン	名詞
+あべいらびりてぃぞーん	アベイラビリティゾーン	名詞
+じゅうりょうかきん	従量課金	名詞
