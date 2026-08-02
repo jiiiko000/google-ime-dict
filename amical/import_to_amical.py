@@ -24,6 +24,7 @@ from datetime import date
 from pathlib import Path
 
 REPO_DIR = Path(__file__).resolve().parent.parent
+DICT_DIR = REPO_DIR / "dict"
 DB_PATH = (
     Path.home() / "Library" / "Application Support" / "Amical" / "amical.db"
 )
@@ -76,16 +77,17 @@ def hira_to_kata(s: str) -> str:
 
 
 def load_entries():
-    """全 *.txt から固有名詞の (読み, 表記) を読み込む。"""
+    """dict/ 配下の全 *_terms.txt から固有名詞の (読み, 表記) を読み込む。"""
     entries = []
     seen = set()
-    for txt in sorted(REPO_DIR.glob("*.txt")):
+    for txt in sorted(DICT_DIR.rglob("*_terms.txt")):
         for line in txt.read_text(encoding="utf-8").splitlines():
             if not line or line.startswith("#"):
                 continue
             cols = line.split("\t")
             if len(cols) != 3:
-                print(f"warning: 列数が3でない行をスキップ: {txt.name}: {line!r}")
+                rel = txt.relative_to(DICT_DIR)
+                print(f"warning: 列数が3でない行をスキップ: {rel}: {line!r}")
                 continue
             reading, word, pos = (c.strip() for c in cols)
             if pos != "固有名詞":
