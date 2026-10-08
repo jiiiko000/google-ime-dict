@@ -1,4 +1,6 @@
+import contextlib
 import http.server
+import io
 import json
 import sys
 import tempfile
@@ -174,6 +176,94 @@ class DictionaryBridgeTest(unittest.TestCase):
         dead = ow.DictionaryBridge("http://127.0.0.1:1", "test-token")
         with self.assertRaises(ow.BridgeNotRunning):
             dead.list_words()
+
+
+class MainTest(unittest.TestCase):
+    def setUp(self):
+        self.stub = StubBridge(["OpenWhispr"])
+        self.addCleanup(self.stub.stop)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        self.config = self.stub.config_file(self.dir)
+        self.dict_dir = self.dir / "dict"
+        self.dict_dir.mkdir()
+        (self.dict_dir / "a_terms.txt").write_text(
+            "あんすろぴっく\tAnthropic\t固有名詞\nてらふぉーむ\tTerraform\t固有名詞\n",
+            encoding="utf-8",
+        )
+        self.words = self.dir / "words.txt"
+
+    def write_words(self, body):
+        self.words.write_text(body, encoding="utf-8")
+
+    def run_main(self, *extra):
+        argv = [
+            "--words", str(self.words),
+            "--bridge-config", str(self.config),
+            "--dict-dir", str(self.dict_dir),
+        ] + list(extra)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = ow.main(argv)
+        return code, out.getvalue()
+
+    def posted_adds(self):
+        return [r[2]["add"] for r in self.stub.requests if r[0] == "POST"]
+
+    def test_dry_run_prints_additions_without_posting(self):
+        self.write_words("Anthropic\nTerraform\n")
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.posted_adds(), [])
+        self.assertIn("+ Anthropic", out)
+        self.assertIn("+ Terraform", out)
+
+    def test_posts_only_the_diff(self):
+        self.write_words("Anthropic\nTerraform\n")
+        self.stub.words.append("Anthropic")
+        code, _ = self.run_main()
+        self.assertEqual(code, 0)
+        self.assertEqual(self.posted_adds(), [["Terraform"]])
+
+    def test_second_run_posts_nothing(self):
+        self.write_words("Anthropic\nTerraform\n")
+        self.assertEqual(self.run_main()[0], 0)
+        self.assertEqual(self.run_main()[0], 0)
+        self.assertEqual(self.posted_adds(), [["Anthropic", "Terraform"]])
+
+    def test_empty_words_file_exits_zero_and_posts_nothing(self):
+        self.write_words("")
+        code, _ = self.run_main()
+        self.assertEqual(code, 0)
+        self.assertEqual(self.posted_adds(), [])
+
+    def test_comments_only_words_file_exits_zero(self):
+        self.write_words("# まだ何も無い\n")
+        self.assertEqual(self.run_main()[0], 0)
+
+    def test_missing_bridge_config_exits_nonzero_with_hint(self):
+        self.config.unlink()
+        self.write_words("Anthropic\n")
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("OpenWhispr を起動", out)
+
+    def test_warns_about_words_missing_from_dict_dir_but_still_adds_them(self):
+        self.write_words("Anthropic\nNope\n")
+        code, out = self.run_main()
+        self.assertEqual(code, 0)
+        self.assertIn("Nope", out)
+        self.assertEqual(self.posted_adds(), [["Anthropic", "Nope"]])
+
+    def test_warns_when_prompt_exceeds_char_limit(self):
+        long_word = "X" * 900
+        (self.dict_dir / "b_terms.txt").write_text(
+            "えっくす\t%s\t固有名詞\n" % long_word, encoding="utf-8"
+        )
+        self.write_words(long_word + "\n")
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertIn("warning", out)
 
 
 if __name__ == "__main__":
