@@ -69,12 +69,23 @@ class FindUnknownWordsTest(unittest.TestCase):
 
 
 class StubBridge:
-    """CLI ブリッジの代わり。受けたリクエストを記録して固定の応答を返す。"""
+    """CLI ブリッジの代わり。受けたリクエストを記録して応答を返す。
+
+    既定では正常に応答する。異常系を試すときは次の属性を設定する:
+    get_status / post_status … その HTTP ステータスでエラー本文を返す
+    get_payload / post_payload … 200 でその JSON をそのまま返す
+    drop_post … POST で応答を書かずに接続を切る
+    """
 
     def __init__(self, words=None):
         self.words = list(words or [])
         self.requests = []  # (method, path, body)
         self.auth_headers = []
+        self.get_status = 200
+        self.post_status = 200
+        self.get_payload = None
+        self.post_payload = None
+        self.drop_post = False
         stub = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -85,14 +96,36 @@ class StubBridge:
                 stub.requests.append((method, self.path, body))
                 stub.auth_headers.append(self.headers.get("Authorization"))
 
+            def _error(self, status):
+                self._send(
+                    {"error": {"code": "unauthorized" if status == 401 else "not_found",
+                               "message": "stub"}},
+                    status,
+                )
+
             def do_GET(self):
                 self._record("GET", None)
+                if stub.get_status != 200:
+                    self._error(stub.get_status)
+                    return
+                if stub.get_payload is not None:
+                    self._send(stub.get_payload)
+                    return
                 self._send({"data": list(stub.words), "has_more": False, "next_cursor": None})
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = json.loads(self.rfile.read(length).decode("utf-8"))
                 self._record("POST", body)
+                if stub.drop_post:
+                    self.close_connection = True
+                    return
+                if stub.post_status != 200:
+                    self._error(stub.post_status)
+                    return
+                if stub.post_payload is not None:
+                    self._send(stub.post_payload)
+                    return
                 added = 0
                 for word in body.get("add", []):
                     if word.lower() not in {w.lower() for w in stub.words}:
@@ -100,9 +133,9 @@ class StubBridge:
                         added += 1
                 self._send({"data": {"words": list(stub.words), "added": added, "removed": 0}})
 
-            def _send(self, payload):
+            def _send(self, payload, status=200):
                 raw = json.dumps(payload).encode("utf-8")
-                self.send_response(200)
+                self.send_response(status)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.send_header("Content-Length", str(len(raw)))
                 self.end_headers()
@@ -176,6 +209,33 @@ class DictionaryBridgeTest(unittest.TestCase):
         dead = ow.DictionaryBridge("http://127.0.0.1:1", "test-token")
         with self.assertRaises(ow.BridgeNotRunning):
             dead.list_words()
+
+    def test_from_config_file_unreadable_path_raises_bridge_error(self):
+        directory = Path(self._tmp.name) / "adir"
+        directory.mkdir()
+        with self.assertRaises(ow.BridgeError):
+            ow.DictionaryBridge.from_config_file(directory)
+
+    def test_from_config_file_invalid_utf8_raises_bridge_error(self):
+        path = Path(self._tmp.name) / "bad-utf8.json"
+        path.write_bytes(b"\xff\xfe{not utf8")
+        with self.assertRaises(ow.BridgeError):
+            ow.DictionaryBridge.from_config_file(path)
+
+    def test_list_words_rejects_response_without_data(self):
+        self.stub.get_payload = {"unexpected": True}
+        with self.assertRaises(ow.BridgeError):
+            self.bridge().list_words()
+
+    def test_list_words_rejects_non_string_entries(self):
+        self.stub.get_payload = {"data": [1, 2]}
+        with self.assertRaises(ow.BridgeError):
+            self.bridge().list_words()
+
+    def test_add_words_rejects_response_without_added(self):
+        self.stub.post_payload = {"data": {"words": []}}
+        with self.assertRaises(ow.BridgeError):
+            self.bridge().add_words(["Anthropic"])
 
 
 class MainTest(unittest.TestCase):
@@ -264,6 +324,70 @@ class MainTest(unittest.TestCase):
         code, out = self.run_main("--dry-run")
         self.assertEqual(code, 0)
         self.assertIn("warning", out)
+
+    def test_char_limit_warning_counts_the_whole_dictionary(self):
+        # words.txt 単体では収まっていても、既存の語と合わせて上限を超えることがある
+        self.write_words("Anthropic\n")
+        self.stub.words.append("X" * 880)
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        # "OpenWhispr"(10) + ", "(2) + "X"*880 + ", "(2) + "Anthropic"(9) = 903
+        self.assertIn("903", out)
+        self.assertIn("warning", out)
+        self.assertIn("届きません", out)
+
+    def test_no_char_limit_warning_when_total_fits(self):
+        self.write_words("Anthropic\n")
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertNotIn("warning", out)
+
+    def test_post_http_error_exits_nonzero_with_message(self):
+        self.write_words("Anthropic\n")
+        self.stub.post_status = 500
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("error:", out)
+
+    def test_post_connection_drop_exits_nonzero_with_message(self):
+        self.write_words("Anthropic\n")
+        self.stub.drop_post = True
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("error:", out)
+
+    def test_dry_run_marks_words_already_present(self):
+        self.write_words("Anthropic\nTerraform\n")
+        self.stub.words.append("Anthropic")
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertIn("= Anthropic (登録済み)", out)
+        self.assertIn("+ Terraform", out)
+        self.assertNotIn("+ Anthropic", out)
+
+    def test_dry_run_with_everything_present_lists_no_additions(self):
+        self.write_words("Anthropic\n")
+        self.stub.words.append("anthropic")
+        code, out = self.run_main("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertIn("= Anthropic (登録済み)", out)
+        self.assertNotIn("  + ", out)
+
+    def test_unauthorized_tells_the_user_to_restart_the_app(self):
+        self.write_words("Anthropic\n")
+        self.stub.get_status = 401
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("401", out)
+        self.assertIn("起動し直", out)
+
+    def test_not_found_tells_the_user_to_update_the_app(self):
+        self.write_words("Anthropic\n")
+        self.stub.get_status = 404
+        code, out = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("404", out)
+        self.assertIn("更新", out)
 
 
 if __name__ == "__main__":

@@ -63,6 +63,12 @@ def plan_additions(wanted, existing):
     return [w for w in wanted if w.lower() not in have]
 
 
+def plan_existing(wanted, existing):
+    """wanted のうち existing にすでに入っているものを、wanted の順で返す。"""
+    have = {w.lower() for w in existing}
+    return [w for w in wanted if w.lower() in have]
+
+
 def find_unknown_words(wanted, known_words):
     """known_words に無い語を wanted の順で返す(警告用)。"""
     known = {w.lower() for w in known_words}
@@ -75,6 +81,13 @@ class BridgeError(RuntimeError):
 
 class BridgeNotRunning(BridgeError):
     """OpenWhispr が起動していない、またはブリッジに接続できない。"""
+
+
+# HTTP ステータスごとの対処法。利用者が次に何をすればいいかを示す。
+HTTP_HINTS = {
+    401: " (OpenWhispr を一度終了して起動し直し、~/.openwhispr/cli-bridge.json を読み直してください)",
+    404: " (このバージョンの OpenWhispr に辞書APIがない可能性があります。アプリを更新してください)",
+}
 
 
 class DictionaryBridge:
@@ -97,7 +110,9 @@ class DictionaryBridge:
             config = json.loads(path.read_text(encoding="utf-8"))
             port = int(config["port"])
             token = config["token"]
-        except (ValueError, KeyError, TypeError) as e:
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            # OSError は権限なし・ディレクトリを指している等。ValueError は
+            # 不正な JSON と不正な UTF-8 の両方。
             raise BridgeError(f"CLIブリッジの設定を読めません: {path}: {e}")
         return cls(f"http://127.0.0.1:{port}", token)
 
@@ -112,23 +127,49 @@ class DictionaryBridge:
         )
         try:
             with urllib.request.urlopen(req, timeout=10) as res:
-                return json.loads(res.read().decode("utf-8"))
+                raw = res.read().decode("utf-8")
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "replace")
-            raise BridgeError(f"{method} {path} が {e.code} を返しました: {body}")
-        except urllib.error.URLError as e:
+            hint = HTTP_HINTS.get(e.code, "")
+            raise BridgeError(f"{method} {path} が {e.code} を返しました: {body}{hint}")
+        except OSError as e:
+            # URLError だけでなく、応答が返る前に切れた場合(urlopen 内の
+            # getresponse が投げる RemoteDisconnected など)もここに来る。
+            reason = getattr(e, "reason", e)
             raise BridgeNotRunning(
-                f"OpenWhispr に接続できません ({self.base_url}): {e.reason}"
+                f"OpenWhispr に接続できません ({self.base_url}): {reason}"
             )
+        try:
+            return json.loads(raw)
+        except ValueError as e:
+            raise BridgeError(f"{method} {path} の応答を読めません: {e}: {raw!r}")
 
     def list_words(self):
         """現在 OpenWhispr に入っている語の一覧を返す。"""
-        return self._request("GET", "/v1/dictionary/list")["data"]
+        data = self._request("GET", "/v1/dictionary/list")
+        words = data.get("data") if isinstance(data, dict) else None
+        if not isinstance(words, list) or not all(
+            isinstance(w, str) for w in words
+        ):
+            raise BridgeError(f"辞書の一覧を読めません（応答の形式が想定と違います）: {data!r}")
+        return words
 
     def add_words(self, words):
         """語を追加し、実際に追加された語数を返す(既存の語はスキップされる)。"""
-        body = self._request("POST", "/v1/dictionary/update", {"add": list(words)})
-        return body["data"]["added"]
+        data = self._request("POST", "/v1/dictionary/update", {"add": list(words)})
+        payload = data.get("data") if isinstance(data, dict) else None
+        added = payload.get("added") if isinstance(payload, dict) else None
+        if not isinstance(added, int) or isinstance(added, bool):
+            raise BridgeError(f"投入の結果を読めません（応答の形式が想定と違います）: {data!r}")
+        return added
+
+
+def report_bridge_error(e):
+    """ブリッジ由来の例外を説明し、終了コード 1 を返す。"""
+    print(f"error: {e}")
+    if isinstance(e, BridgeNotRunning):
+        print("OpenWhispr を起動してから、もう一度実行してください。")
+    return 1
 
 
 def main(argv=None):
@@ -148,12 +189,7 @@ def main(argv=None):
         return 1
 
     wanted = read_words_file(args.words)
-    prompt_chars = len(", ".join(wanted))
-    print(f"words.txt: {len(wanted)}語 "
-          f"(STT ヒント用 {prompt_chars}字 / 上限 {STT_PROMPT_CHAR_LIMIT}字)")
-    if prompt_chars > STT_PROMPT_CHAR_LIMIT:
-        print(f"warning: STT ヒントの上限を {prompt_chars - STT_PROMPT_CHAR_LIMIT}字 "
-              f"超えています（Whisper系では後半のみ届きます）")
+    print(f"words.txt: {len(wanted)}語 ({len(', '.join(wanted))}字)")
 
     unknown = find_unknown_words(wanted, {w for _, w in load_entries(args.dict_dir)})
     if unknown:
@@ -163,27 +199,37 @@ def main(argv=None):
     try:
         bridge = DictionaryBridge.from_config_file(args.bridge_config)
         existing = bridge.list_words()
-    except BridgeNotRunning as e:
-        print(f"error: {e}")
-        print("OpenWhispr を起動してから、もう一度実行してください。")
-        return 1
     except BridgeError as e:
-        print(f"error: {e}")
-        return 1
+        return report_bridge_error(e)
 
     additions = plan_additions(wanted, existing)
-    print(f"OpenWhispr の辞書: {len(existing)}語 / 追加予定: {len(additions)}語")
+    already = plan_existing(wanted, existing)
+    # OpenWhispr は辞書「全体」を連結してから上限を適用するので、
+    # 既存の語(手動追加・自動学習)も含めて数える。
+    prompt_chars = len(", ".join(list(existing) + additions))
+    print(f"OpenWhispr の辞書: {len(existing)}語 / 追加予定: {len(additions)}語 "
+          f"/ words.txt の登録済み: {len(already)}語")
+    print(f"STT ヒント: 投入後の合計 {prompt_chars}字 / 上限 {STT_PROMPT_CHAR_LIMIT}字")
+    if prompt_chars > STT_PROMPT_CHAR_LIMIT:
+        print(f"warning: 上限を {prompt_chars - STT_PROMPT_CHAR_LIMIT}字 超えた分は"
+              f"音声認識に届きません（OpenWhispr が辞書を先頭から詰めるため）。"
+              f"語を減らすか、優先度の低い語を words.txt の後ろに移してください。")
 
     if args.dry_run:
         for word in additions:
             print(f"  + {word}")
+        for word in already:
+            print(f"  = {word} (登録済み)")
         return 0
 
     if not additions:
         print("追加する語はありません。")
         return 0
 
-    added = bridge.add_words(additions)
+    try:
+        added = bridge.add_words(additions)
+    except BridgeError as e:
+        return report_bridge_error(e)
     print(f"投入完了: {added}件 追加 (辞書 合計 {len(existing) + added}語)")
     print("OpenWhispr の Settings > Dictionary で確認してください。")
     return 0
