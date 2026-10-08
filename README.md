@@ -8,7 +8,7 @@ Google日本語入力（Mozc）用のユーザー辞書をトピック別にま�
 
 | ファイル | 内容 |
 | --- | --- |
-| `dict/技術/ai_terms.txt` | AI・機械学習用語（181語）。企業・モデル名（OpenAI, Anthropic, ChatGPT, Claude, Gemini など）、ML基礎用語（勾配降下法, 過学習 など）、生成AI用語（RAG, ハルシネーション, エージェント など）、開発ツール（Claude Code, MCP, LangChain など） |
+| `dict/技術/ai_terms.txt` | AI・機械学習用語（290語）。企業・モデル名（OpenAI, Anthropic, Sakana AI, Claude, Gemini, Kimi, GLM など）、ML基礎用語（勾配降下法, 過学習 など）、生成AI用語（RAG, ハルシネーション, エージェント, 推論時計算 など）、開発ツール・エージェント（Claude Code, Cursor, CrewAI, MCP など） |
 | `dict/技術/dev_terms.txt` | 開発ツール・インフラ用語（92語）。コンテナ・K8s（Kubernetes, Helm, Istio など）、IaC（Terraform, Ansible など）、監視（Prometheus, Grafana, オブザーバビリティ など）、CI/CD・Git・ネットワーク用語 |
 | `dict/技術/web_terms.txt` | プログラミング・Web技術用語（113語）。言語・フレームワーク（TypeScript, React, Next.js, Rails など）、開発ツール（Vite, ESLint, Playwright など）、概念（非同期処理, 冪等性, ハイドレーション, リファクタリング など） |
 | `dict/技術/cloud_terms.txt` | クラウド・SaaS製品名（87語）。クラウド基盤（AWS, Google Cloud, Azure, Cloudflare など）、AWS/GCPサービス名（Lambda, S3, BigQuery など）、SaaS（Datadog, Slack, Notion, Figma, Jira など） |
