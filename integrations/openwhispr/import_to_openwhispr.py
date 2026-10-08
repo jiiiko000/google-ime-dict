@@ -19,7 +19,10 @@ OpenWhispr の語彙(`custom_dictionary`)には読み・品詞の概念がなく
     python3 integrations/openwhispr/import_to_openwhispr.py             # 実際に投入(要 OpenWhispr 起動)
 """
 
+import json
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 REPO_DIR = Path(__file__).resolve().parents[2]
@@ -63,3 +66,65 @@ def find_unknown_words(wanted, known_words):
     """known_words に無い語を wanted の順で返す(警告用)。"""
     known = {w.lower() for w in known_words}
     return [w for w in wanted if w.lower() not in known]
+
+
+class BridgeError(RuntimeError):
+    """CLI ブリッジとのやり取りに失敗した。"""
+
+
+class BridgeNotRunning(BridgeError):
+    """OpenWhispr が起動していない、またはブリッジに接続できない。"""
+
+
+class DictionaryBridge:
+    """OpenWhispr の CLI ブリッジ(ローカル HTTP API)経由で辞書を読み書きする。
+
+    ポートとトークンは ~/.openwhispr/cli-bridge.json に書かれており、
+    アプリが起動している間だけ存在する。
+    """
+
+    def __init__(self, base_url, token):
+        self.base_url = base_url.rstrip("/")
+        self.token = token
+
+    @classmethod
+    def from_config_file(cls, path):
+        path = Path(path)
+        if not path.exists():
+            raise BridgeNotRunning(f"CLIブリッジの設定が見つかりません: {path}")
+        try:
+            config = json.loads(path.read_text(encoding="utf-8"))
+            port = int(config["port"])
+            token = config["token"]
+        except (ValueError, KeyError, TypeError) as e:
+            raise BridgeError(f"CLIブリッジの設定を読めません: {path}: {e}")
+        return cls(f"http://127.0.0.1:{port}", token)
+
+    def _request(self, method, path, payload=None):
+        headers = {"Authorization": f"Bearer {self.token}"}
+        data = None
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        req = urllib.request.Request(
+            self.base_url + path, data=data, headers=headers, method=method
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as res:
+                return json.loads(res.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            raise BridgeError(f"{method} {path} が {e.code} を返しました: {body}")
+        except urllib.error.URLError as e:
+            raise BridgeNotRunning(
+                f"OpenWhispr に接続できません ({self.base_url}): {e.reason}"
+            )
+
+    def list_words(self):
+        """現在 OpenWhispr に入っている語の一覧を返す。"""
+        return self._request("GET", "/v1/dictionary/list")["data"]
+
+    def add_words(self, words):
+        """語を追加し、実際に追加された語数を返す(既存の語はスキップされる)。"""
+        body = self._request("POST", "/v1/dictionary/update", {"add": list(words)})
+        return body["data"]["added"]
