@@ -23,8 +23,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
-REPO_DIR = Path(__file__).resolve().parents[2]
-DICT_DIR = REPO_DIR / "dict"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.dict_entries import load_entries
+
 DB_PATH = (
     Path.home() / "Library" / "Application Support" / "Amical" / "amical.db"
 )
@@ -89,29 +90,6 @@ def hira_to_kata(s: str) -> str:
     return "".join(
         chr(ord(c) + 0x60) if "ぁ" <= c <= "ゖ" else c for c in s
     )
-
-
-def load_entries():
-    """dict/ 配下の全 *_terms.txt から固有名詞の (読み, 表記) を読み込む。"""
-    entries = []
-    seen = set()
-    for txt in sorted(DICT_DIR.rglob("*_terms.txt")):
-        for line in txt.read_text(encoding="utf-8").splitlines():
-            if not line or line.startswith("#"):
-                continue
-            cols = line.split("\t")
-            if len(cols) != 3:
-                rel = txt.relative_to(DICT_DIR)
-                print(f"warning: 列数が3でない行をスキップ: {rel}: {line!r}")
-                continue
-            reading, word, pos = (c.strip() for c in cols)
-            if pos != "固有名詞":
-                continue
-            if (reading, word) in seen:
-                continue
-            seen.add((reading, word))
-            entries.append((reading, word))
-    return entries
 
 
 def build_rows(entries):
