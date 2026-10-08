@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-Google日本語入力（Mozc）用ユーザー辞書のデータリポジトリ。ビルド・テスト・lint は存在せず、成果物は `dict/` 配下の辞書テキスト自体。唯一のコードは音声入力アプリ Amical への取り込みスクリプト [amical/import_to_amical.py](amical/import_to_amical.py)（Python標準ライブラリのみ、依存関係なし）。
+Google日本語入力（Mozc）用ユーザー辞書のデータリポジトリ。ビルド・テスト・lint は存在せず、成果物は `dict/` 配下の辞書テキスト自体。唯一のコードは音声入力アプリ Amical への取り込みスクリプト [integrations/amical/import_to_amical.py](integrations/amical/import_to_amical.py)（Python標準ライブラリのみ、依存関係なし）。
 
 ## 辞書ファイルの不変条件
 
@@ -30,9 +30,9 @@ Google日本語入力（Mozc）用ユーザー辞書のデータリポジトリ�
 ### Amical へ取り込む
 
 ```bash
-python3 amical/import_to_amical.py --dry-run   # 投入内容の確認（DB非破壊）
-python3 amical/import_to_amical.py             # 実行（要 Amical 終了。DBは自動バックアップ）
-python3 amical/import_to_amical.py --db path/to/amical.db   # DBパス指定
+python3 integrations/amical/import_to_amical.py --dry-run   # 投入内容の確認（DB非破壊）
+python3 integrations/amical/import_to_amical.py             # 実行（要 Amical 終了。DBは自動バックアップ）
+python3 integrations/amical/import_to_amical.py --db path/to/amical.db   # DBパス指定
 ```
 
 `~/Library/Application Support/Amical/amical.db` の `vocabulary` テーブル（`word`, `replacement_word`, `is_replacement`）に `insert or ignore` で直接投入する。`word` が一意キーのため、辞書に語を足して再実行すれば差分だけ入る。実行前に Amical プロセスを `pgrep` で検出して起動中なら中断し、`amical.db.bak-<日付>` を作る。

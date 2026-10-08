@@ -21,10 +21,10 @@ Amical の語彙には IME 辞書のような「読み・品詞」の概念が�
 # リポジトリ直下で実行
 
 # 1. 投入内容の確認（DBには書き込まない）
-python3 amical/import_to_amical.py --dry-run
+python3 integrations/amical/import_to_amical.py --dry-run
 
 # 2. Amical を終了してから実行
-python3 amical/import_to_amical.py
+python3 integrations/amical/import_to_amical.py
 ```
 
 実行時は `amical.db` を同ディレクトリに `amical.db.bak-<日付>` として自動バックアップしてから投入します。登録済みの語（`word` 列で判定）はスキップされるので、**辞書に語を追加したら再実行すれば差分だけ追加されます**。

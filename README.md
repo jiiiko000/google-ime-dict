@@ -42,11 +42,11 @@ iconv -f UTF-8 -t UTF-16LE dict/技術/ai_terms.txt | { printf '\xff\xfe'; cat; 
 
 ## Amical（音声入力）への取り込み
 
-音声入力アプリ [Amical](https://amical.ai/) の語彙にも、この辞書から固有名詞を取り込めます。変換の仕組みと使い方は [amical/README.md](amical/README.md) を参照してください。
+音声入力アプリ [Amical](https://amical.ai/) の語彙にも、この辞書から固有名詞を取り込めます。変換の仕組みと使い方は [integrations/amical/README.md](integrations/amical/README.md) を参照してください。
 
 ```bash
-python3 amical/import_to_amical.py --dry-run   # 投入内容の確認
-python3 amical/import_to_amical.py             # 実行（Amical を終了してから。DBは自動バックアップ）
+python3 integrations/amical/import_to_amical.py --dry-run   # 投入内容の確認
+python3 integrations/amical/import_to_amical.py             # 実行（Amical を終了してから。DBは自動バックアップ）
 ```
 
 辞書に語を追加したら再実行すれば差分だけ追加されます（登録済みの語はスキップ）。

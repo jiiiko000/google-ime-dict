@@ -11,8 +11,8 @@ Amical の語彙には「読み・品詞」の概念がないため、次の方�
   表記のみをヒントモード(AIプロンプトへの注入)で登録する
 
 使い方:
-    python3 amical/import_to_amical.py --dry-run   # 投入内容の確認のみ
-    python3 amical/import_to_amical.py             # 実際にDBへ投入(要 Amical 終了)
+    python3 integrations/amical/import_to_amical.py --dry-run   # 投入内容の確認のみ
+    python3 integrations/amical/import_to_amical.py             # 実際にDBへ投入(要 Amical 終了)
 """
 
 import argparse
@@ -23,7 +23,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-REPO_DIR = Path(__file__).resolve().parent.parent
+REPO_DIR = Path(__file__).resolve().parents[2]
 DICT_DIR = REPO_DIR / "dict"
 DB_PATH = (
     Path.home() / "Library" / "Application Support" / "Amical" / "amical.db"
