@@ -51,6 +51,17 @@ python3 integrations/amical/import_to_amical.py             # 実行（Amical �
 
 辞書に語を追加したら再実行すれば差分だけ追加されます（登録済みの語はスキップ）。
 
+## OpenWhispr（音声入力）への取り込み
+
+音声入力アプリ [OpenWhispr](https://www.openwhispr.com/) の辞書にも、この辞書から語を取り込めます。仕組みと使い方は [integrations/openwhispr/README.md](integrations/openwhispr/README.md) を参照してください。
+
+```bash
+python3 integrations/openwhispr/import_to_openwhispr.py --dry-run   # 投入内容の確認
+python3 integrations/openwhispr/import_to_openwhispr.py             # 実行（OpenWhispr を起動した状態で）
+```
+
+**Amical とは逆に、OpenWhispr は起動している必要があります。** 投入する語は STT のヒント枠に収めるため `integrations/openwhispr/words.txt` に明示的に列挙してあり（初期値85語）、`dict/` に語を足しても自動では入りません。足したい語は `words.txt` にも1行追記してください。
+
 ## 辞書を追加したいとき
 
 ### 既存の辞書に用語を追加する
