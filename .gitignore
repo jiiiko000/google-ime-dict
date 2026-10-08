@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 *_win.txt
+
+# Claude Code 個人設定（プラグインON/OFF など）。共有設定 .claude/settings.json はコミットする
+.claude/settings.local.json
