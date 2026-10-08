@@ -1,0 +1,92 @@
+# OpenWhispr に投入する語（1行1語）
+# 行の並び順が初回投入時の優先度になる（add の順 = 挿入順 = STT ヒントの並び）。
+# 語を足すときは dict/ 側にも同じ表記の固有名詞があることを確認する。
+# ===== AI企業・モデル =====
+Anthropic
+OpenAI
+Google DeepMind
+Mistral AI
+xAI
+NVIDIA
+Hugging Face
+ElevenLabs
+Groq
+Sakana AI
+ChatGPT
+Claude
+Claude Code
+Claude Desktop
+Gemini
+Llama
+DeepSeek
+Qwen
+Whisper
+NotebookLM
+# ===== AI開発ツール =====
+Cursor
+Windsurf
+Cline
+Codex
+GitHub Copilot
+Devin
+Aider
+OpenCode
+OpenHands
+LangChain
+LangGraph
+LlamaIndex
+Ollama
+OpenRouter
+Dify
+Pinecone
+Weaviate
+Qdrant
+PyTorch
+Jupyter Notebook
+# ===== クラウド基盤・サービス =====
+AWS
+Google Cloud
+Azure
+Cloudflare
+Vercel
+Netlify
+DigitalOcean
+EC2
+S3
+Lambda
+Fargate
+EKS
+RDS
+DynamoDB
+CloudFront
+BigQuery
+Cloud Run
+GKE
+Firebase
+Supabase
+Snowflake
+Databricks
+# ===== 開発ツール・SaaS =====
+Kubernetes
+Docker
+Docker Compose
+Helm
+Terraform
+Ansible
+Prometheus
+Grafana
+Elasticsearch
+OpenTelemetry
+nginx
+Traefik
+GitHub
+GitHub Actions
+GitLab
+Jenkins
+TypeScript
+Next.js
+Tailwind CSS
+Vite
+Playwright
+Datadog
+Sentry
