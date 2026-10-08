@@ -74,3 +74,15 @@ python3 integrations/openwhispr/import_to_openwhispr.py             # 実行（O
 
 - `dict/一般/company_terms.txt` — 社内用語・プロジェクト名・人名
 - `dict/一般/finance_terms.txt` — 金融・会計用語
+
+## ライセンス
+
+[Apache License 2.0](LICENSE) の下で公開しています。取り込みスクリプト（`integrations/`、`tests/`）と辞書データ（`dict/`、`integrations/openwhispr/words.txt`）の両方が対象です。
+
+```
+Copyright 2026 jiiiko000
+```
+
+Apache 2.0 に従う形で、派生物には著作権表示とライセンス文の同梱が必要です。
+
+なお、辞書に収録している企業名・製品名・サービス名は**各社の商標または登録商標**です。本リポジトリのライセンスは、それらの商標の使用権を許諾するものではありません（Apache 2.0 第6条も商標権は許諾していません）。
